@@ -95,7 +95,6 @@ final class CleaningSession {
         isActive = true
         capsLockWasOn = CapsLock.isOn
 
-        OverlayController.movePointerToCardScreen() // before activating, so the built-in screen is the active one
         NSApp.activate(ignoringOtherApps: true)
         overlay.show()
         NSApp.presentationOptions = [.hideDock, .hideMenuBar, .disableProcessSwitching,

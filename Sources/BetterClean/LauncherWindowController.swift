@@ -85,7 +85,7 @@ struct LauncherView: View {
             startButton
         }
         .padding(.horizontal, 28)
-        .padding(.top, 8)
+        .padding(.top, 18)
         .padding(.bottom, 24)
         .frame(width: 440)
     }
@@ -163,7 +163,7 @@ struct LauncherView: View {
                 .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
 
-            Text("Input comes back on its own after this time, even if Touch ID doesn't work. Up to 15 min.")
+            Text("Unlocks on its own after this time, even if Touch ID fails. Max 15 min.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
