@@ -57,11 +57,11 @@ Main question: **does Touch ID work while the tap and overlay are up?** Yes (tes
 - [x] Caps Lock state is the same after exit as before
 - [x] Pressing the power button (= Touch ID key) ends the session and input comes back; the Mac doesn't sleep. Which signal ends it is still to be confirmed in the log
 - [x] Plug in or unplug a display mid-session: every screen stays covered
-- [ ] ~~Lid open, external monitor as main display, pointer last on the monitor: Touch ID works~~ Known limitation, accepted: Touch ID doesn't respond; trackpad hold and timer still work. Neither moving the card nor moving the pointer to the built-in screen fixed it.
+- [~] Lid open, external monitor as main display, pointer last on the monitor: inconsistent. The same build failed in one test and worked in a later one (2026-11-23, sessions ended by Touch ID). Cause unknown; the trackpad hold and timer always work.
 - [x] Display doesn't dim during a long session
 - [x] Three-finger drag turned on: wiping the trackpad doesn't trigger the hold exit
 - [x] Lid closed with an external display: fallbacks work
 
-Known limitation: with an external monitor as the main display and the pointer last on it, Touch ID doesn't respond; use the trackpad hold.
+Known limitation: with an external monitor as the main display, Touch ID sometimes doesn't respond (cause unknown); use the trackpad hold.
 
 Not yet built: global keyboard shortcut (planned for later). Touch Bar Macs: the Touch Bar isn't blocked.
