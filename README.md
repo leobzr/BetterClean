@@ -6,7 +6,7 @@ Clean your MacBook's keyboard, trackpad and screen without clicking or typing an
 
 ## Install
 
-1. Unzip `BetterClean.zip` and drag **BetterClean** into your **Applications** folder.
+1. Download **BetterClean.zip** from the [latest release](https://github.com/leobzr/BetterClean/releases/latest), unzip it and drag **BetterClean** into your **Applications** folder.
 2. Open it. macOS will warn that it can't verify the app, because it isn't from the App Store or a registered developer. Click **Done**.
 3. Open **System Settings › Privacy & Security**, scroll down and click **Open Anyway** next to the BetterClean message. Confirm with your password or Touch ID.
 4. In the BetterClean window, click **Open Accessibility Settings** and turn **BetterClean** on. This lets it block the keyboard and trackpad while you clean.
@@ -75,12 +75,14 @@ defaults write local.betterclean.prototype useSystemPrompt -bool true   # system
 defaults delete local.betterclean.prototype                             # back to defaults
 ```
 
-**Make a zip to share** (what the user guide above expects):
+**Publish a release** (the user guide above downloads from GitHub Releases):
 
 ```sh
 scripts/build-app.sh release
-ditto -c -k --keepParent build/BetterClean.app BetterClean.zip
+ditto -c -k --keepParent build/BetterClean.app dist/BetterClean.zip
 ```
+
+Then create a GitHub release (tag `vX.Y`) and attach `dist/BetterClean.zip`. Bump `CFBundleShortVersionString` in `scripts/build-app.sh` for each new version.
 
 Logs: `log stream --predicate 'subsystem == "local.betterclean.prototype"'`
 
