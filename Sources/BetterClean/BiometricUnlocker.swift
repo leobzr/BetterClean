@@ -14,7 +14,8 @@ final class BiometricUnlocker {
         case unavailable(String)
     }
 
-    var onContextReady: ((LAContext) -> Void)?
+    /// Called with the new context before each round, and with nil when Touch ID pauses.
+    var onContextReady: ((LAContext?) -> Void)?
     var onSuccess: (() -> Void)?
     var onStatus: ((String) -> Void)?
 
@@ -73,7 +74,7 @@ final class BiometricUnlocker {
         }
 
         let code = (error as? LAError)?.code
-        NSLog("BetterClean: Touch ID attempt ended: \(String(describing: code)) \(error?.localizedDescription ?? "")")
+        logEvent("Touch ID attempt ended: \(String(describing: code)) \(error?.localizedDescription ?? "")")
 
         switch code {
         case .biometryLockout:
@@ -81,9 +82,15 @@ final class BiometricUnlocker {
         case .biometryNotAvailable, .biometryNotEnrolled:
             onStatus?("Touch ID unavailable. Hold the trackpad or wait for the timer.")
         case .authenticationFailed:
-            let delay = retry.recordFailure()
-            onStatus?("Fingerprint not recognized. Touch ID ready again in \(Int(delay))s.")
-            scheduleRearm(after: delay)
+            if let delay = retry.recordFailure() {
+                onStatus?("Fingerprint not recognized. Touch ID ready again in \(Int(delay))s.")
+                scheduleRearm(after: delay)
+            } else {
+                // Another round would likely lock Touch ID until the password is entered.
+                context = nil
+                onContextReady?(nil)
+                onStatus?("Fingerprint not recognized. Touch ID is paused so macOS doesn't lock it. Hold the trackpad or wait for the timer.")
+            }
         default:
             // userCancel, systemCancel (focus loss), appCancel, notInteractive, …
             scheduleRearm(after: retry.rearmDelay)

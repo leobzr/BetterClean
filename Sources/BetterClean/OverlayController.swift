@@ -24,7 +24,9 @@ final class OverlayController {
     /// Called again when displays are connected or disconnected.
     func rebuild() {
         closeWindows()
-        for (index, screen) in NSScreen.screens.enumerated() {
+        let cardScreen = Self.screenForCard()
+        var cardWindow: NSWindow?
+        for screen in NSScreen.screens {
             let window = OverlayWindow(contentRect: screen.frame,
                                        styleMask: .borderless,
                                        backing: .buffered,
@@ -42,7 +44,8 @@ final class OverlayController {
             content.layer?.backgroundColor = NSColor.black.cgColor
             window.contentView = content
 
-            if index == 0 { // NSScreen.screens[0] holds the menu bar
+            if screen == cardScreen {
+                cardWindow = window
                 let card = StatusCardView()
                 card.translatesAutoresizingMaskIntoConstraints = false
                 content.addSubview(card)
@@ -58,7 +61,35 @@ final class OverlayController {
             window.orderFrontRegardless()
             windows.append(window)
         }
-        windows.first?.makeKeyAndOrderFront(nil)
+        // The window holding the Touch ID view must be key for the view to respond.
+        (cardWindow ?? windows.first)?.makeKeyAndOrderFront(nil)
+    }
+
+    /// The status card (and the embedded Touch ID view) goes on the built-in
+    /// display, next to the sensor. Touch ID stopped responding when the card
+    /// was on an external monitor set as the main display. Falls back to the
+    /// menu-bar screen when the lid is closed.
+    /// Moves the (hidden) pointer to the middle of the card's display, making
+    /// it the active display. Touch ID ignored touches while the pointer was
+    /// last on an external monitor, even with the card on the built-in screen.
+    /// Warping the pointer doesn't generate mouse events.
+    static func movePointerToCardScreen() {
+        guard let screen = screenForCard(),
+              let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+        else { return }
+        let bounds = CGDisplayBounds(CGDirectDisplayID(number.uint32Value)) // global, top-left origin
+        CGWarpMouseCursorPosition(CGPoint(x: bounds.midX, y: bounds.midY))
+        CGAssociateMouseAndMouseCursorPosition(1) // warping can briefly detach the mouse; re-attach
+    }
+
+    private static func screenForCard() -> NSScreen? {
+        let builtIn = NSScreen.screens.first { screen in
+            guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else {
+                return false
+            }
+            return CGDisplayIsBuiltin(CGDirectDisplayID(number.uint32Value)) != 0
+        }
+        return builtIn ?? NSScreen.screens.first
     }
 
     func close() {

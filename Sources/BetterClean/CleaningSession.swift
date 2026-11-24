@@ -8,19 +8,26 @@ struct SessionConfig {
     /// embedded LAAuthenticationView, to compare how each behaves.
     var useSystemPrompt: Bool
 
-    /// Override with e.g. `defaults write local.betterclean.prototype timeoutSeconds -float 60`.
+    /// Product decision (2026-11-23): 20 s is also the release default. The
+    /// timer is a last-resort fallback; users who want longer pick it in the
+    /// launcher window.
+    static let defaultTimeout: TimeInterval = 20
+    static let timeoutKey = "timeoutSeconds"
+
+    /// The timer is chosen in the launcher window and saved here. Always
+    /// clamped to TimeoutOptions.range, whatever is stored.
     static func load() -> SessionConfig {
         let defaults = UserDefaults.standard
-        #if DEBUG
-        let defaultTimeout: TimeInterval = 20 // short while developing, so a bug can't trap you
-        #else
-        let defaultTimeout: TimeInterval = 180
-        #endif
+        let storedTimeout = defaults.object(forKey: timeoutKey) as? Double ?? defaultTimeout
         return SessionConfig(
-            timeout: defaults.object(forKey: "timeoutSeconds") as? Double ?? defaultTimeout,
+            timeout: TimeoutOptions.clamp(storedTimeout),
             holdDuration: defaults.object(forKey: "holdSeconds") as? Double ?? 3,
             useSystemPrompt: defaults.bool(forKey: "useSystemPrompt")
         )
+    }
+
+    static func saveTimeout(_ seconds: TimeInterval) {
+        UserDefaults.standard.set(TimeoutOptions.clamp(seconds), forKey: timeoutKey)
     }
 }
 
@@ -88,6 +95,7 @@ final class CleaningSession {
         isActive = true
         capsLockWasOn = CapsLock.isOn
 
+        OverlayController.movePointerToCardScreen() // before activating, so the built-in screen is the active one
         NSApp.activate(ignoringOtherApps: true)
         overlay.show()
         NSApp.presentationOptions = [.hideDock, .hideMenuBar, .disableProcessSwitching,
@@ -104,7 +112,7 @@ final class CleaningSession {
         RunLoop.main.add(timer, forMode: .common)
         ticker = timer
         tick()
-        NSLog("BetterClean: session started (timeout \(Int(config.timeout))s, hold \(config.holdDuration)s, systemPrompt \(config.useSystemPrompt))")
+        logEvent("session started (timeout \(Int(config.timeout))s, hold \(config.holdDuration)s, systemPrompt \(config.useSystemPrompt))")
     }
 
     func end(_ reason: EndReason) {
@@ -126,7 +134,7 @@ final class CleaningSession {
         if CapsLock.isOn != capsLockWasOn { CapsLock.set(capsLockWasOn) }
         removeObservers()
 
-        NSLog("BetterClean: session ended by \(reason.rawValue)")
+        logEvent("session ended by \(reason.rawValue)")
         onEnded?(reason)
     }
 

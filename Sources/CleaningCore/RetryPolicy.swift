@@ -1,33 +1,36 @@
 import Foundation
 
-/// Decides how long to wait before re-arming Touch ID.
+/// Decides whether and when to re-arm Touch ID.
 ///
-/// Wiping the sensor produces failed reads, and about 5 failed matches make
-/// macOS demand the password at the next unlock. So each consecutive failure
-/// backs off (5s, 10s, 20s, capped at 30s) instead of re-arming immediately.
+/// One evaluation ("round") lets the user try several fingers before it fails,
+/// and macOS locks Touch ID after about 5 failed matches until the password is
+/// entered. Tested: the second failed round always hit that lockout. So after
+/// `maxFailedRounds` failed rounds Touch ID stays off for the rest of the
+/// session, and the trackpad hold and timer remain as exits.
 public struct RetryPolicy {
-    public let baseFailureDelay: TimeInterval
-    public let maxFailureDelay: TimeInterval
+    public let maxFailedRounds: Int
+    /// Pause after a failed round before re-arming (only used when more than one round is allowed).
+    public let failureDelay: TimeInterval
     /// Delay after a non-failure interruption (cancel, focus loss).
     public let rearmDelay: TimeInterval
-    public private(set) var consecutiveFailures = 0
+    public private(set) var failedRounds = 0
 
-    public init(baseFailureDelay: TimeInterval = 5,
-                maxFailureDelay: TimeInterval = 30,
+    public init(maxFailedRounds: Int = 1,
+                failureDelay: TimeInterval = 5,
                 rearmDelay: TimeInterval = 1) {
-        self.baseFailureDelay = baseFailureDelay
-        self.maxFailureDelay = maxFailureDelay
+        self.maxFailedRounds = maxFailedRounds
+        self.failureDelay = failureDelay
         self.rearmDelay = rearmDelay
     }
 
-    /// Records a failed match and returns how long to wait before re-arming.
-    public mutating func recordFailure() -> TimeInterval {
-        consecutiveFailures += 1
-        let delay = baseFailureDelay * pow(2, Double(consecutiveFailures - 1))
-        return min(delay, maxFailureDelay)
+    /// Records a failed round. Returns the delay before re-arming, or nil when
+    /// Touch ID should stay off for the rest of the session.
+    public mutating func recordFailure() -> TimeInterval? {
+        failedRounds += 1
+        return failedRounds < maxFailedRounds ? failureDelay : nil
     }
 
     public mutating func reset() {
-        consecutiveFailures = 0
+        failedRounds = 0
     }
 }

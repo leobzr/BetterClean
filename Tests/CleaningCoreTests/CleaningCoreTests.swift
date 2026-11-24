@@ -49,21 +49,79 @@ import Testing
 }
 
 @Suite struct RetryPolicyTests {
-    @Test func backsOffAndCaps() {
-        var p = RetryPolicy(baseFailureDelay: 5, maxFailureDelay: 30)
+    @Test func defaultStopsAfterOneFailedRound() {
+        // Two failed rounds locked Touch ID in testing, so the default allows one.
+        var p = RetryPolicy()
+        #expect(p.recordFailure() == nil)
+    }
+
+    @Test func allowsConfiguredRoundsThenStops() {
+        var p = RetryPolicy(maxFailedRounds: 3, failureDelay: 5)
         #expect(p.recordFailure() == 5)
-        #expect(p.recordFailure() == 10)
-        #expect(p.recordFailure() == 20)
-        #expect(p.recordFailure() == 30)
-        #expect(p.recordFailure() == 30)
+        #expect(p.recordFailure() == 5)
+        #expect(p.recordFailure() == nil)
     }
 
     @Test func resetStartsOver() {
-        var p = RetryPolicy()
-        _ = p.recordFailure()
+        var p = RetryPolicy(maxFailedRounds: 2, failureDelay: 5)
         _ = p.recordFailure()
         p.reset()
-        #expect(p.recordFailure() == p.baseFailureDelay)
+        #expect(p.recordFailure() == 5)
+    }
+}
+
+@Suite struct TimeoutOptionsTests {
+    @Test func clampsToSafeRange() {
+        #expect(TimeoutOptions.clamp(0) == 10)
+        #expect(TimeoutOptions.clamp(-5) == 10)
+        #expect(TimeoutOptions.clamp(20) == 20)
+        #expect(TimeoutOptions.clamp(86_400) == 900)
+    }
+
+    @Test func presetsAreWithinRange() {
+        for preset in TimeoutOptions.presets {
+            #expect(TimeoutOptions.range.contains(preset))
+        }
+    }
+
+    @Test func stepsUpThroughBands() {
+        #expect(TimeoutOptions.increment(20) == 30)
+        #expect(TimeoutOptions.increment(50) == 60)
+        #expect(TimeoutOptions.increment(60) == 90)
+        #expect(TimeoutOptions.increment(300) == 360)
+        #expect(TimeoutOptions.increment(900) == 900)
+    }
+
+    @Test func stepsDownThroughBands() {
+        #expect(TimeoutOptions.decrement(60) == 50)
+        #expect(TimeoutOptions.decrement(90) == 60)
+        #expect(TimeoutOptions.decrement(300) == 270)
+        #expect(TimeoutOptions.decrement(360) == 300)
+        #expect(TimeoutOptions.decrement(10) == 10)
+    }
+
+    @Test func upAndDownReturnToTheSameValue() {
+        for start in TimeoutOptions.stepperValues.dropLast() {
+            #expect(TimeoutOptions.decrement(TimeoutOptions.increment(start)) == start, "from \(start)")
+        }
+    }
+
+    @Test func offGridValuesSnapOntoTheGrid() {
+        #expect(TimeoutOptions.increment(290) == 300)
+        #expect(TimeoutOptions.decrement(290) == 270)
+        #expect(TimeoutOptions.increment(15) == 20)
+    }
+
+    @Test func stepperValuesStayInRange() {
+        #expect(TimeoutOptions.stepperValues.first == TimeoutOptions.range.lowerBound)
+        #expect(TimeoutOptions.stepperValues.last == TimeoutOptions.range.upperBound)
+    }
+
+    @Test func durationFormatting() {
+        #expect(TimeFormatting.duration(20) == "20 s")
+        #expect(TimeFormatting.duration(60) == "1 min")
+        #expect(TimeFormatting.duration(90) == "1 min 30 s")
+        #expect(TimeFormatting.duration(900) == "15 min")
     }
 }
 

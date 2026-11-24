@@ -12,7 +12,7 @@ Target: MacBooks with a Touch ID sensor (Apple Silicon first). Windows/Linux sup
 2. **Black out the screen:** borderless, pure black window covering every display, above all other windows. Black makes smudges and dust on the display easy to see.
 3. **Block input:** swallow all keyboard events (including media, brightness and function keys) and trackpad/mouse events (clicks, movement, scroll, gestures where possible).
 4. **Exit with Touch ID:** user touches (not presses) the Touch ID sensor, app authenticates, input is restored and the overlay closes.
-5. **Safety fallback:** auto-exit after a timeout (default 3 minutes, configurable), plus an emergency exit gesture (for example, holding a specific key combo for ~3 seconds).
+5. **Safety fallback:** auto-exit after a timeout (default 20 seconds, chosen in the app window: 20 s, 1, 3 or 5 min, or custom up to 15 min), plus an emergency exit: press and hold the trackpad for 3 seconds. (A key combo was dropped: wiping the keyboard can press keys by accident.)
 
 ## Technical approach
 
@@ -46,17 +46,18 @@ Target: MacBooks with a Touch ID sensor (Apple Silicon first). Windows/Linux sup
 
 ## MVP scope
 
-- [ ] Menu bar app with "Start Cleaning Mode" item and global shortcut
-- [ ] Accessibility permission check and onboarding screen
-- [ ] Black overlay on all displays, cursor hidden
-- [ ] Event tap blocking keyboard, media keys and trackpad/mouse
-- [ ] Touch ID exit with automatic retry
-- [ ] Timeout auto-exit (configurable) with a visible countdown
-- [ ] Emergency exit key-hold combo
-- [ ] Overlay hint text: "Touch the sensor lightly to exit. Don't press it."
+- [x] Menu bar app with "Start Cleaning Mode" item
+- [x] Accessibility permission check and onboarding (launcher window)
+- [x] Black overlay on all displays, cursor hidden
+- [x] Event tap blocking keyboard, media keys and trackpad/mouse
+- [x] Touch ID exit; after one failed round it pauses (a second round triggered macOS's password lockout)
+- [x] Timeout auto-exit (default 20 s, configurable) with a visible countdown
+- [x] Emergency exit: trackpad hold for 3 s
+- [x] Overlay hint text: "Touch the sensor lightly to exit. Don't press it."
 
 ## Later ideas
 
+- Global keyboard shortcut to start cleaning from any app (moved out of the MVP on 2026-11-23: the menu bar icon is enough for now)
 - Optional dim gray mode instead of pure black (for seeing keys under keyboard backlight)
 - Turn keyboard backlight to max while cleaning
 - Cleaning reminders on a schedule
@@ -65,5 +66,5 @@ Target: MacBooks with a Touch ID sensor (Apple Silicon first). Windows/Linux sup
 ## Notes for Claude Code
 
 - Keep the input-blocking and Touch ID logic in small, testable components (for example `InputBlocker`, `OverlayController`, `BiometricUnlocker`, `CleaningSession`).
-- Any change to the event tap or exit logic must preserve both fallbacks (timeout and emergency exit).
+- Any change to the event tap or exit logic must preserve both fallbacks (timeout and trackpad hold).
 - Apple's own guidance is to power off before cleaning with liquid. The app is meant for quick dry or lightly damp wipes; mention this in the README.

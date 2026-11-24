@@ -10,8 +10,8 @@ Menu bar app that blacks out every display and blocks keyboard and trackpad inpu
 Needs macOS 13+, Swift 5.10+ (the Command Line Tools are enough, no Xcode needed).
 
 ```sh
-scripts/build-app.sh            # debug: auto-unlock after 20 s
-scripts/build-app.sh release    # release: auto-unlock after 180 s
+scripts/build-app.sh            # debug build
+scripts/build-app.sh release    # release build
 open build/BetterClean.app      # sparkles icon in the menu bar → Start Cleaning Mode
 open build/BetterClean.app --args --start   # start a session right away
 scripts/test.sh                 # unit tests for CleaningCore
@@ -28,7 +28,7 @@ defaults write local.betterclean.prototype useSystemPrompt -bool true   # system
 defaults delete local.betterclean.prototype                             # back to defaults
 ```
 
-Logs: `log stream --predicate 'eventMessage CONTAINS "BetterClean"'`
+Logs: `log stream --predicate 'subsystem == "local.betterclean.prototype"'`
 
 ## Layout
 
@@ -45,20 +45,23 @@ Rule: any change to the tap or exit logic must keep **both** fallbacks (timer an
 
 ## Prototype test checklist
 
-Main question: **does Touch ID work while the tap and overlay are up?**
+Main question: **does Touch ID work while the tap and overlay are up?** Yes (tested 2026-11-23, MacBook Air).
 
-- [ ] Embedded Touch ID view appears on the card, and a light touch exits
-- [ ] Same with `useSystemPrompt` on: is the system dialog visible above the overlay?
-- [ ] A wrong finger shows the backoff message, then Touch ID re-arms
-- [ ] Trackpad hold for 3 s exits; quick taps and clicks while wiping don't
-- [ ] Timer exits on its own
-- [ ] Keyboard fully blocked: letters, media and brightness keys, Fn/Globe, ⌘Tab, ⌘⌥Esc, ⌃⌘Q, Spotlight, dictation
-- [ ] Trackpad gestures blocked: Mission Control, App Exposé, swipe between Spaces, pinch, Notification Center
-- [ ] Caps Lock state is the same after exit as before
-- [ ] Pressing the power button: session ends cleanly and input works after waking
-- [ ] Plug in or unplug a display mid-session: every screen stays covered
-- [ ] Display doesn't dim during a long session
-- [ ] With three-finger drag or drag lock turned on (Accessibility › Pointer Control), wiping the trackpad may hold a "click" down and trigger the hold exit, so check this
-- [ ] Lid closed with an external display: card says Touch ID is unavailable, fallbacks still work
+- [x] A touch with a registered finger exits; other fingers and non-fingerprint touches don't
+- [ ] Optional: with `useSystemPrompt` on, is the system Touch ID dialog visible above the overlay? (Not needed: the embedded view works and is the default.)
+- [x] A failed round (wrong fingers) pauses Touch ID; the trackpad hold exits, and the next session's Touch ID works without the password. (Earlier design re-armed after 5 s; the second failed round locked Touch ID.)
+- [x] Trackpad hold for 3 s exits
+- [x] Timer exits on its own
+- [x] Keyboard fully blocked
+- [x] Trackpad gestures blocked
+- [x] Caps Lock state is the same after exit as before
+- [x] Pressing the power button (= Touch ID key) ends the session and input comes back; the Mac doesn't sleep. Which signal ends it is still to be confirmed in the log
+- [x] Plug in or unplug a display mid-session: every screen stays covered
+- [ ] ~~Lid open, external monitor as main display, pointer last on the monitor: Touch ID works~~ Known limitation, accepted: Touch ID doesn't respond; trackpad hold and timer still work. Neither moving the card nor moving the pointer to the built-in screen fixed it.
+- [x] Display doesn't dim during a long session
+- [x] Three-finger drag turned on: wiping the trackpad doesn't trigger the hold exit
+- [x] Lid closed with an external display: fallbacks work
 
-Known gaps: no global shortcut, no settings UI, no onboarding screen yet. Touch Bar Macs: the Touch Bar isn't blocked.
+Known limitation: with an external monitor as the main display and the pointer last on it, Touch ID doesn't respond; use the trackpad hold.
+
+Not yet built: global keyboard shortcut (planned for later). Touch Bar Macs: the Touch Bar isn't blocked.

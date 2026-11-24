@@ -43,7 +43,7 @@ final class InputBlocker {
                 userInfo: refcon
             ) {
                 tap = created
-                NSLog("BetterClean: event tap created at \(location == .cghidEventTap ? "HID" : "session") level")
+                logEvent("event tap created at \(location == .cghidEventTap ? "HID" : "session") level")
                 break
             }
         }

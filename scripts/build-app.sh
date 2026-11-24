@@ -41,5 +41,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
+# Finder/Gatekeeper can attach extended attributes that codesign rejects.
+xattr -cr "$APP"
 codesign --force --sign "${SIGN_IDENTITY:--}" --identifier "$BUNDLE_ID" "$APP"
 echo "Built $APP ($CONFIG, signed with ${SIGN_IDENTITY:-ad-hoc})"

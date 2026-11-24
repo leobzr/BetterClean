@@ -1,7 +1,9 @@
 import Cocoa
+import CleaningCore
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem?
+    private var timerInfoItem: NSMenuItem?
     private var session: CleaningSession?
     private var launcher: LauncherWindowController?
 
@@ -19,15 +21,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         show.target = self
         menu.addItem(show)
         menu.addItem(.separator())
-        let info = NSMenuItem(title: "Auto-unlock after \(Int(config.timeout))s", action: nil, keyEquivalent: "")
+        let info = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         info.isEnabled = false
         menu.addItem(info)
+        timerInfoItem = info
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit BetterClean", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.delegate = self
         item.menu = menu
         statusItem = item
 
-        NSLog("BetterClean: launched (timeout \(Int(config.timeout))s, accessibility \(Permissions.accessibilityGranted(prompt: false) ? "granted" : "missing"))")
+        logEvent("launched (timeout \(Int(config.timeout))s, accessibility \(Permissions.accessibilityGranted(prompt: false) ? "granted" : "missing"))")
 
         // `open BetterClean.app --args --start` starts a session right away (handy while testing).
         if CommandLine.arguments.contains("--start") {
@@ -35,6 +39,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             showLauncher()
         }
+    }
+
+    /// The timer can change in the launcher window, so refresh the label on every open.
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        timerInfoItem?.title = "Auto-unlock after \(TimeFormatting.duration(SessionConfig.load().timeout))"
     }
 
     /// Opening the app again (Finder, `open`, Spotlight) while it's running.
@@ -49,8 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showLauncher() {
         if launcher == nil {
-            let config = SessionConfig.load()
-            let controller = LauncherWindowController(timeout: config.timeout, holdDuration: config.holdDuration)
+            let controller = LauncherWindowController()
             controller.onStart = { [weak self] in self?.startCleaning() }
             launcher = controller
         }
@@ -65,7 +73,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             try session.start()
             self.session = session
         } catch {
-            NSLog("BetterClean: could not start: \(error.localizedDescription)")
+            logEvent("could not start: \(error.localizedDescription)")
             NSApp.activate(ignoringOtherApps: true)
             let alert = NSAlert()
             alert.messageText = "Can't start cleaning mode"
